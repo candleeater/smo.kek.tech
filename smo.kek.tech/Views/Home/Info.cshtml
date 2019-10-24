@@ -1,0 +1,137 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width" />
+        <title>SMO v1 API</title>
+        <style>
+            td {
+                border: 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <div>
+            <h1>SMO v1 API</h1>
+            <p>
+                This is a publicly available GET only RESTful API for moon (and other) data related to Super Mario Odyssey. All responses are in JSON format.
+                <br />The data was mostly manually entered by me. There is high potential for inaccuracies at this stage. Moon names should be pretty solid (cross referenced with various lists), kingdoms are solid, moon numbers are solid. The available boolean fields should be pretty solid too. (more coming soon)
+                <br />Better documentation coming soon...
+
+            </p>
+        </div>
+        <div>
+            <h1>Endpoints</h1>
+            <p>
+                The following endpoints are available:
+                <br /> /api/v1/moons
+                <br /> /api/v1/moons/{moonId}
+                <br /> /api/v1/kingdoms
+                <br /> /api/v1/kingdoms/{kingdomId}
+                <br /> /api/v1/moonTypes
+                <br /> /api/v1/captures
+                <br /> /api/v1/songs
+            </p>
+        </div>
+        <div>
+            <h1>Filtering</h1>
+            <p>
+                Most text fields can be filtered by partial match:
+                <br /> /api/v1/moons?name.contains=toad
+                <br /> /api/v1/moons?name.startsWith=love
+                <br /> /api/v1/moons?name.endsWith=rematch
+                <br /> Exact match is also possible:
+                <br /> /api/v1/moons?name=Our First Power Moon
+                <br /> All non text fields are filtered by exact match
+                <br /> Invalid query params are ignored
+                <br /> All filters and params are case insensitive
+            </p>
+        </div>
+        <div>
+            <h1>Paging</h1>
+            <p>
+                All the list endpoints allow paging with the pageSize and pageNum parameters. Additional paging info is returned if at least pageSize is supplied
+                <br /> /api/v1/moons?pageSize=5&amp;pageNum=10
+
+            </p>
+        </div>
+        <div>
+            <h1>Randomization</h1>
+            <p>
+                Supplying the parameter randomize=true will randomize the results and return the random seed used. You can supply that seed in future calls to preserve the random order, or supply it in the initial call if you want to generate it yourself. The seed is a 32 bit signed int.
+                <br /> <strong>Warning: using this feature with filtering or paging currently results in undefined behavior and is not recommended.</strong>
+                <br /> /api/v1/moons?randomize=true
+                <br /> /api/v1/moons?randomize=true&amp;seed=1337
+            </p>
+        </div>
+        <div>
+            <h1>Ordering the moon/kingdom lists</h1>
+            <p>
+                During the game the user is presented with two binary choices regarding kingdom order, allowing for 4 possible orders. This is represented by an orderBitMask. The default value is 0. The value can be entered as a binary or decimal representation.
+                <br /> Using this param will change the order property appropriately in the response. This only applies to the moon and kingdom list endpoints currently.
+
+                <table>
+                    <thead>
+                        <tr>
+                            <td>Decimal Value</td>
+                            <td>Binary Value</td>
+                            <td>Result</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>00</td>
+                            <td>Lake then Wooded, Snow then Seaside</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>01</td>
+                            <td>Wooded then Lake, Snow then Seaside</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>10</td>
+                            <td>Lake then Wooded, Seaside then Snow</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>11</td>
+                            <td>Wooded then Lake, Seaside then Snow</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <br /> /api/v1/moons?orderBitMask=2
+                <br /> /api/v1/kingdoms?orderBitMask=11
+
+            </p>
+        </div>
+        <div>
+            <h1>To Do, Potential additions</h1>
+            <ul>
+                <li>screenshots of each moon</li>
+                <li>screenshots of each kingdom and capture</li>
+                <li>x,y coordinates of each moon on the kingdom map</li>
+                <li>song durations? song kingdom? (could be 0, 1, or many, not all of these are clear)</li>
+                <li>more moon types: crate moon, cappy (capture) (this would be stuff like the cactus in sand, the tree in deep woods, etc), gloryhole, torch (the ones in luncheon mostly), capture puzzles, "I Met a" moons that aren't bonneton, scarecrow, rc car, goomba (difference between stack/defender), cage, crate, scooter parking, other capture based moons (like lake cheep cheep), others?, NPC moons (ones which require talking to an NPC)</li>
+                <li>checkpoints endpoint and x,y coords</li>
+                <li>filtering based on moon types (exact, any). ex moonTypes=timer, moonTypes.any=timer,underwater, etc.</li>
+                <li>moon dependencies (ie which moons are required to collect before subsequent moons), this will be tricky to come up with and the scope needs to be defined (for example, is every moon dependent on My First Power Moon, or only immediate dependancies?)</li>
+            </ul>
+        </div>
+
+        <div>
+            <h1>Assumptions and Open Questions</h1>
+            <p>Not all moon types are clear cut, I'm trying to figure out a consistent set of rules for each type in the edge cases</p>
+            <ul>
+                <li>are binocular moons that are a sphynx also considered sphynx moons?</li>
+                <li>do moons in scarecrow rooms count as timer moons? should they have their own moon type? should they count as scarecrow moons?</li>
+                <li>isStoryMoon bool - in progress (do the rematches in mushroom count as story moons? they trigger the red splash screen but they are not part of the "All Story Moons" category)</li>
+                <li>should moons in rooms that require a costume to enter be considered costume moons? ex sand/seaside dance rooms, but also snow/metro subareas that require the costume to enter (without clipping)</li>
+            </ul>
+        </div>
+    </body>
+</html>
