@@ -108,7 +108,11 @@ namespace smo.kek.tech.Controllers.v1
                                     moon = moons.Where(m => missing.Contains(m.Id)).Shuffle(rand).First();
                                     missing = moon.MoonPrerequisiteList.Where(p => !routes[key].Moons.Select(m => m.Id).Contains(p));
                                 }
+
                             }
+
+                            if ((moon.Value + routes[key].MoonCount) > routes[key].Kingdom.MinimumMoons)
+                                continue;
 
                             routes[key].Tasks.Add(new RouteTask()
                             {
