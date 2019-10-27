@@ -28,29 +28,33 @@ namespace smo.kek.tech.Controllers.v1
         /// Any% rando
         /// </summary>
         /// <returns></returns>
-        [HttpGet("rando")]
-        public async Task<JsonResult> GetAnyRando()
+        [HttpPost("rando")]
+        public async Task<JsonResult> GetAnyRando([FromBody]RandoRequestModel request)
         {
-            var query = Request.Query;
+            if (request == null)
+                request = new RandoRequestModel(); //use defaults
+
             var routes = new Dictionary<string, KingdomRoute>();
             int seed = new Random().Next(int.MaxValue);
             var rand = new Random(seed);
             var seedString = seed.ToString();
 
-            if (query.ContainsKey("seed"))
+            if (!string.IsNullOrEmpty(request.Seed))
             {
-                if (int.TryParse(query["seed"], out seed))
+                if (int.TryParse(request.Seed, out seed))
                 {
                     rand = new Random(seed);
                     seedString = seed.ToString();
                 }
                 else
                 {
-                    seed = query["seed"].GetHashCode();
-                    seedString = $"{query["seed"].ToString()} ({seed})";
+                    seed = request.Seed.GetHashCode();
+                    seedString = $"{request.Seed.ToString()} ({seed})";
                     rand = new Random(seed);
                 }
             }
+
+            request.Seed = seedString;
 
             using (var conn = new SqlConnection(ConnectionString))
             {
@@ -81,7 +85,19 @@ namespace smo.kek.tech.Controllers.v1
                     });
 
                     //add all the required moons to their appropriate kingdom
-                    moons.Where(m => m.IsRequired).ToList().ForEach(m =>
+                    var required = new List<Moon>();
+
+                    if (request.ForceWorldPeace)
+                    {
+                        required = moons.Where(m => m.IsRequired || m.IsStoryMoon).ToList();
+                        //TODO: add task for toadette moon
+                    }
+                    else
+                    {
+                        required = moons.Where(m => m.IsRequired).ToList();
+                    }
+
+                    required.ToList().ForEach(m =>
                     {
                         routes[m.Kingdom].Tasks.Add(new RouteTask()
                         {
@@ -103,12 +119,20 @@ namespace smo.kek.tech.Controllers.v1
                             if (moon.MoonPrerequisiteList.Any())
                             {
                                 var missing = moon.MoonPrerequisiteList.Where(p => !routes[key].Moons.Select(m => m.Id).Contains(p));
-                                while (missing.Any())
-                                {
-                                    moon = moons.Where(m => missing.Contains(m.Id)).Shuffle(rand).First();
-                                    missing = moon.MoonPrerequisiteList.Where(p => !routes[key].Moons.Select(m => m.Id).Contains(p));
-                                }
 
+                                if (request.SelectionStrategy == MoonSelectionStrategy.DeferPrerequisites)
+                                {
+                                    if (missing.Any())
+                                        continue;
+                                }
+                                else if (request.SelectionStrategy == MoonSelectionStrategy.ResolvePrerequisites)
+                                {
+                                    while (missing.Any())
+                                    {
+                                        moon = moons.Where(m => missing.Contains(m.Id)).Shuffle(rand).First();
+                                        missing = moon.MoonPrerequisiteList.Where(p => !routes[key].Moons.Select(m => m.Id).Contains(p));
+                                    }
+                                }
                             }
 
                             if ((moon.Value + routes[key].MoonCount) > routes[key].Kingdom.MinimumMoons)
@@ -157,7 +181,12 @@ namespace smo.kek.tech.Controllers.v1
 
                         if (!string.IsNullOrEmpty(missingPrereqs))
                         {
-                            return Json(new { error = "an error occured", seed = seedString, msg = $"Validation failed found missing prerequisites:\n {missingPrereqs}", ex = "", stack = "" });
+                            return Json(new RandoErrorResponse()
+                            {
+                                Request = request,
+                                Error = "An error occured",
+                                Message = $"Validation failed found missing prerequisites:\n {missingPrereqs}"
+                            });
                         }
 
                     }
@@ -188,16 +217,16 @@ namespace smo.kek.tech.Controllers.v1
                     #endregion
 
 
-                    return Json(new
+                    return Json(new RandoResponse()
                     {
-                        seed = seedString,
-                        routes = routes.Values.ToList()
+                        Settings = request,
+                        Routes = routes.Values.ToList()
                     });
 
                 }
                 catch (Exception ex)
                 {
-                    return Json(new { error = "an error occured", seed = seedString, msg = ex.Message, ex = ex.InnerException, stack = ex.StackTrace });
+                    return Json(new RandoErrorResponse(request, ex));
                 }
             }
         }

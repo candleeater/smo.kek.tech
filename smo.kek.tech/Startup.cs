@@ -44,6 +44,8 @@ namespace smo.kek.tech
                 options.AddPolicy(allowAnyOrigin, builder =>
                 {
                     builder.AllowAnyOrigin();
+                    builder.AllowAnyMethod();
+                    builder.AllowAnyHeader();
                 });
             });
             // Add framework services.
@@ -71,7 +73,7 @@ namespace smo.kek.tech
             //            "public,max-age=" + durationInSeconds;
             //    }
             //});
-   
+
             app.UseMvc();
         }
     }
